@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>✨ 深圳6人吃喝玩乐小分队 🐾</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FFFDF9',
+            sunny: '#FFD166',
+            bubblegum: '#FF99C8',
+            mint: '#A9DEF9',
+            matcha: '#D0F4DE',
+            softpurple: '#E4C1F9',
+          },
+          fontFamily: {
+            cartoon: ['"ZCOOL KuaiLe"', '"Nunito"', 'cursive', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FFF9F2;
+      background-image: radial-gradient(#FDE2E4 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    .cute-card {
+      border: 3px solid #2D3748;
+      box-shadow: 5px 5px 0px #2D3748;
+      border-radius: 1.25rem;
+    }
+    .cute-btn {
+      border: 2px solid #2D3748;
+      box-shadow: 3px 3px 0px #2D3748;
+      transition: all 0.15s ease-in-out;
+    }
+    .cute-btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px #2D3748;
+    }
+    .cute-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #2D3748;
+    }
+    .drag-ghost {
+      opacity: 0.4;
+      background: #FFFBEB !important;
+      border: 2px dashed #F59E0B !important;
+    }
+  </style>
+</head>
+<body class="text-gray-800 font-sans pb-24">
+
+  <!-- 身份选择浮层弹窗 -->
+  <div id="user-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full p-6 cute-card text-center relative">
+      <button onclick="document.getElementById('user-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-lg font-bold" title="关闭">✕</button>
+      <div class="w-16 h-16 bg-sunny rounded-full border-2 border-gray-800 flex items-center justify-center mx-auto mb-3 text-3xl">
+        🐼
+      </div>
+      <h3 class="text-2xl font-extrabold font-cartoon text-gray-900 mb-1">请选择你的身份</h3>
+      <p class="text-xs text-gray-500 mb-6">选定后投票会记录你的名字，朋友们都能看见哦！</p>
+      <div class="grid grid-cols-2 gap-3" id="user-select-list"></div>
+    </div>
+  </div>
+
+  <!-- 顶部状态栏 -->
+  <div class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b-2 border-gray-800 px-4 py-2.5 shadow-sm">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">👋</span>
+        <span class="text-xs font-bold text-gray-500">当前操作者:</span>
+        <span id="current-user-tag" class="bg-sunny font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm">未选择</span>
+      </div>
+      <button onclick="openUserModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline">
+        切换好友
+      </button>
+    </div>
+  </div>
+
+  <!-- 顶部可爱横幅与航班 -->
+  <header class="max-w-4xl mx-auto pt-8 px-4 text-center">
+    <div class="inline-block bg-sunny text-gray-900 px-4 py-1 rounded-full font-bold cute-btn text-xs mb-3">
+      ✈️ 11.12 - 11.18 · 6人闺蜜情侣快乐出游
+    </div>
+    <h1 class="text-3xl md:text-5xl font-extrabold font-cartoon text-gray-900 tracking-wide mb-3">
+      🧋 深圳好吃好逛 6人度假指南 🐼
+    </h1>
+    <p class="text-gray-600 text-xs md:text-sm font-medium">
+      两对情侣 + 两位帅哥美女！拖拽调整行程、投票选餐厅、随心加愿望！
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-left">
+      <div class="bg-white p-4 cute-card">
+        <h3 class="font-bold text-base text-rose-500 flex items-center mb-2">
+          🛫 直飞往返航班信息
+        </h3>
+        <ul class="text-xs space-y-2 text-gray-700">
+          <li class="bg-rose-50 p-2 rounded-xl border border-rose-200">
+            <strong>去程 (11/12)：</strong> 21:55 吉隆坡 (KUL) ✈️ 02:10 (+1) 深圳宝安 (SZX)
+            <div class="text-[11px] text-rose-500 mt-0.5">※ 凌晨直奔酒店补眠</div>
+          </li>
+          <li class="bg-indigo-50 p-2 rounded-xl border border-indigo-200">
+            <strong>回程 (11/18)：</strong> 03:15 深圳宝安 (SZX) ✈️ 07:25 吉隆坡 (KUL)
+            <div class="text-[11px] text-indigo-500 mt-0.5">※ 17号晚可在水疗会所彻底放松，约23:30前往机场</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="bg-white p-4 cute-card">
+        <h3 class="font-bold text-base text-emerald-600 flex items-center mb-2">
+          👥 6位神仙队员
+        </h3>
+        <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold" id="header-member-chips"></div>
+        <div class="mt-2 text-[11px] text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-200">
+          💡 行前提醒：准备免翻墙流量卡/eSIM，微信/支付宝绑定大马银行卡。
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体区域 -->
+  <main class="max-w-4xl mx-auto px-4 mt-8 space-y-10">
+    <!-- 投票专区 -->
+    <section class="bg-white p-5 md:p-6 cute-card">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <h2 class="text-2xl font-bold font-cartoon text-gray-900">🗳️ 6人专属心愿投票箱</h2>
+          <p class="text-xs text-gray-500">点击心心为想去的打卡点投票，随时可取消，票数包含队员签名！</p>
+        </div>
+        <span class="bg-bubblegum text-gray-900 text-xs px-3 py-1 rounded-full font-bold cute-btn">
+          实名投票
+        </span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="vote-grid"></div>
+
+      <div class="mt-6 pt-5 border-t-2 border-dashed border-gray-200">
+        <h4 class="text-xs font-bold text-gray-700 mb-2">➕ 还想去哪？输入新选项让大家投票：</h4>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="custom-poll-title" placeholder="例如：鲍师傅糕点、顺德啫啫煲、大梅沙海滨栈道..." class="flex-1 px-3 py-2 border-2 border-gray-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sunny">
+          <input type="text" id="custom-poll-img" placeholder="图片链接 (可选，留空使用默认图)" class="w-full sm:w-44 px-3 py-2 border-2 border-gray-800 rounded-xl text-xs focus:outline-none">
+          <button onclick="addCustomPoll()" class="bg-sunny hover:bg-yellow-400 font-bold px-4 py-2 rounded-xl cute-btn text-xs whitespace-nowrap">
+            加入投票
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 详细日程攻略 -->
+    <section>
+      <div class="text-center mb-6">
+        <h2 class="text-3xl font-extrabold font-cartoon text-gray-900">🗓️ 每日行程（支持长按/鼠标拖拽调整先后）</h2>
+        <p class="text-xs text-gray-500">遇到突发情况或者想调换上午下午？直接拖动卡片即可更换顺序！</p>
+      </div>
+      <div class="space-y-6" id="itinerary-days-container"></div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 mt-12">
+    ❤️ Designed with Love for WaiKit, JingYi, Xavier, Tingfang, Gill & Dejun · 祝深圳之旅超开心！
+  </footer>
+
+  <script>
+    const MEMBERS = [
+      { name: "WaiKit", avatar: "👦", color: "bg-sunny" },
+      { name: "JingYi", avatar: "👧", color: "bg-bubblegum" },
+      { name: "Xavier", avatar: "🧑", color: "bg-mint" },
+      { name: "Tingfang", avatar: "👩", color: "bg-softpurple" },
+      { name: "Gill", avatar: "🙋‍♀️", color: "bg-matcha" },
+      { name: "Dejun", avatar: "🙋‍♂️", color: "bg-orange-200" }
+    ];
+
+    let currentUser = localStorage.getItem("sz_current_user") || "";
+
+    const DEFAULT_POLLS = [
+      {
+        id: "poll-1",
+        title: "蘩楼 / 陶陶居 广式大早茶",
+        desc: "虾饺皇、红米肠、豉汁凤爪、酥皮水牛奶菠萝包",
+        img: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80",
+        voters: ["WaiKit", "JingYi"]
+      },
+      {
+        id: "poll-2",
+        title: "润园四季 竹笙椰子鸡火锅",
+        desc: "清甜原汁椰青汤底，沙姜青柠蘸料是灵魂！",
+        img: "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=600&q=80",
+        voters: ["Xavier", "Tingfang", "Gill"]
+      },
+      {
+        id: "poll-3",
+        title: "八合里 潮汕鲜切牛肉火锅",
+        desc: "现宰吊龙、匙柄涮烫8秒起锅，嫩滑爆汁",
+        img: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
+        voters: ["Dejun", "WaiKit"]
+      },
+      {
+        id: "poll-4",
+        title: "欢乐港湾 “湾区之光”巨型摩天轮",
+        desc: "国内首座全天景轿厢摩天轮，日落时分拍照绝美",
+        img: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=600&q=80",
+        voters: ["JingYi", "Gill", "Tingfang"]
+      },
+      {
+        id: "poll-5",
+        title: "大鹏半岛 / 鹿嘴山庄崖壁观海",
+        desc: "周星驰《美人鱼》取景地，深圳最蔚蓝的断崖海岸",
+        img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
+        voters: ["Xavier", "Dejun"]
+      },
+      {
+        id: "poll-6",
+        title: "深式轻奢水疗中心（汤悦/浅深躺平）",
+        desc: "24小时水果、饮料畅吃、推拿汗蒸、电竞棋牌解乏",
+        img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80",
+        voters: ["WaiKit", "Dejun", "Gill", "JingYi"]
+      }
+    ];
+
+    const DEFAULT_ITINERARY = [
+      {
+        dayId: "day-1",
+        date: "11月13日 (周五)",
+        badge: "老深圳与天际线",
+        color: "bg-sunny",
+        items: [
+          {
+            id: "d1-1",
+            time: "11:30 - 13:30",
+            title: "早午茶：蘩楼或陶陶居",
+            desc: "补足凌晨飞机的睡眠后，直奔茶楼叹一盅两件，享受地道广式风味。",
+            img: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d1-2",
+            time: "14:00 - 17:00",
+            title: "东门老街漫步 & 尝小吃",
+            desc: "逛深圳最古老的商业步行街，尝碳烤生蚝，打卡阿嬷手作与鲍师傅小贝。",
+            img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d1-3",
+            time: "17:30 - 19:30",
+            title: "平安金融中心 Free Sky 云际观光",
+            desc: "登上 541 米高空俯瞰深圳与香港边境的壮阔天际线与璀璨暮色。",
+            img: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d1-4",
+            time: "20:00 - 22:00",
+            title: "晚餐：八合里潮汕鲜牛肉火锅",
+            desc: "大盘现切匙柄、吊龙、手打牛肉丸，6个人围炉大快朵颐！",
+            img: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      },
+      {
+        dayId: "day-2",
+        date: "11月14日 (周六)",
+        badge: "文创古城与滨海摩天轮",
+        color: "bg-mint",
+        items: [
+          {
+            id: "d2-1",
+            time: "10:30 - 13:00",
+            title: "南头古城文艺漫游",
+            desc: "拥有近1700年历史的古城，改造后汇聚创意买手店、独立咖啡与艺术小馆。",
+            img: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d2-2",
+            time: "13:30 - 16:00",
+            title: "华侨城创意文化园 (OCT-LOFT)",
+            desc: "绿荫覆盖的旧厂房改造街区，极具出片感，适合6人拍照打卡。",
+            img: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d2-3",
+            time: "16:30 - 18:30",
+            title: "欢乐港湾 “湾区之光” 摩天轮",
+            desc: "在海边大草坪看晚霞，乘坐巨型旋转轿厢俯瞰伶仃洋日落。",
+            img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d2-4",
+            time: "19:00 - 21:00",
+            title: "晚餐：润园四季竹笙椰子鸡",
+            desc: "深圳最具代表性的美味！椰青清汤搭配鲜嫩走地鸡，必点腊味煲仔饭。",
+            img: "https://images.unsplash.com/photo-1547928576-a4a33237cbc3?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      },
+      {
+        dayId: "day-3",
+        date: "11月15日 (周日)",
+        badge: "大鹏半岛海滨微度假",
+        color: "bg-softpurple",
+        items: [
+          {
+            id: "d3-1",
+            time: "09:00 - 11:30",
+            title: "6人包车前往大鹏半岛 / 较场尾",
+            desc: "乘专车沿东部滨海高速前往度假区，一路欣赏蔚蓝海景。",
+            img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d3-2",
+            time: "12:00 - 15:30",
+            title: "鹿嘴山庄 Cliffside 观海",
+            desc: "乘坐接驳电瓶车探寻悬崖海岸线，电影《美人鱼》拍摄溶洞打卡。",
+            img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d3-3",
+            time: "16:00 - 18:30",
+            title: "较场尾海滩咖啡 & 大鹏所城",
+            desc: "走在明清海防古城石板路上，下午在海边风情酒吧吹着海风发呆。",
+            img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d3-4",
+            time: "19:00 - 20:30",
+            title: "晚餐：海鲜街现挑现蒸海鲜大餐",
+            desc: "基围虾、清蒸石斑鱼、粉丝蒸扇贝，原汁原味鲜美无比。",
+            img: "https://images.unsplash.com/photo-1559737558-2f5a35f4523b?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      },
+      {
+        dayId: "day-4",
+        date: "11月16日 (周一)",
+        badge: "潮流商圈疯狂逛街",
+        color: "bg-bubblegum",
+        items: [
+          {
+            id: "d4-1",
+            time: "11:00 - 15:30",
+            title: "万象天地 (MixC) 潮流探索",
+            desc: "与地标大象 Bubble Elephant 拍照，逛潮牌买手店、试喝霸王茶姬与茉莉奶白。",
+            img: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d4-2",
+            time: "16:30 - 18:30",
+            title: "深圳人才公园湖畔落日",
+            desc: "远眺后海华润“春笋”超摩天大楼，傍晚湖面倒影如梦似幻。",
+            img: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d4-3",
+            time: "19:00 - 21:00",
+            title: "晚餐：广府啫啫煲 / 顺德私房菜",
+            desc: "砂锅热气腾腾生啫黄鳝、生啫脆大肠，镬气十足！",
+            img: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      },
+      {
+        dayId: "day-5",
+        date: "11月17日-18日 (周二/三凌晨返航)",
+        badge: "极度舒适水疗 + 采购归途",
+        color: "bg-matcha",
+        items: [
+          {
+            id: "d5-1",
+            time: "12:00 - 14:00",
+            title: "水围1368文化街区吃地道午餐",
+            desc: "退房寄存行李，到城中村品尝猪肚鸡、客家酿豆腐或牛杂煲。",
+            img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d5-2",
+            time: "14:30 - 19:30",
+            title: "深式高端水疗中心 (汤悦/浅深) 放空",
+            desc: "沉浸式体验洗浴、干蒸湿蒸、无限量精品水果与哈根达斯、电竞休息房，彻底消除疲惫。",
+            img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d5-3",
+            time: "20:00 - 23:00",
+            title: "海岸城 / 壹方城采买特产手信",
+            desc: "采购鲍师傅肉松小贝、盒马鲜生伴手礼，吃一顿烧烤生蚝宵夜。",
+            img: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            id: "d5-4",
+            time: "23:30 - 03:15",
+            title: "乘网约车前往宝安机场办理出境回国",
+            desc: "03:15 直飞回吉隆坡 (KUL)，早晨 07:25 顺利到家！",
+            img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      }
+    ];
+
+    let polls = JSON.parse(localStorage.getItem("sz_trip_polls_v2")) || DEFAULT_POLLS;
+    let itinerary = JSON.parse(localStorage.getItem("sz_trip_itinerary_v2")) || DEFAULT_ITINERARY;
+
+    function initUserModal() {
+      const list = document.getElementById("user-select-list");
+      list.innerHTML = "";
+      MEMBERS.forEach(m => {
+        const btn = document.createElement("button");
+        btn.className = `p-3 rounded-xl cute-btn ${m.color} flex items-center space-x-2 text-left`;
+        btn.innerHTML = `<span class="text-xl">${m.avatar}</span><span class="font-extrabold text-sm text-gray-900">${m.name}</span>`;
+        btn.onclick = () => selectUser(m.name);
+        list.appendChild(btn);
+      });
+
+      const headerChips = document.getElementById("header-member-chips");
+      headerChips.innerHTML = "";
+      MEMBERS.forEach(m => {
+        const chip = document.createElement("div");
+        chip.className = `${m.color} p-1.5 rounded-lg border border-gray-800 text-[11px] font-bold`;
+        chip.innerText = `${m.avatar} ${m.name}`;
+        headerChips.appendChild(chip);
+      });
+
+      updateUserUI();
+      if (!currentUser) {
+        openUserModal();
+      } else {
+        document.getElementById("user-modal").classList.add("hidden");
+      }
+    }
+
+    function openUserModal() {
+      document.getElementById("user-modal").classList.remove("hidden");
+    }
+
+    function selectUser(name) {
+      currentUser = name;
+      localStorage.setItem("sz_current_user", name);
+      document.getElementById("user-modal").classList.add("hidden");
+      updateUserUI();
+      renderPolls();
+    }
+
+    function updateUserUI() {
+      const tag = document.getElementById("current-user-tag");
+      if (currentUser) {
+        const mem = MEMBERS.find(m => m.name === currentUser);
+        tag.innerHTML = `${mem?.avatar || '🌟'} ${currentUser}`;
+        tag.className = `font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm ${mem?.color || 'bg-sunny'}`;
+      } else {
+        tag.innerText = "未选择 (点击选择)";
+        tag.className = "bg-gray-100 font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm text-gray-600";
+      }
+    }
+
+    function renderPolls() {
+      const grid = document.getElementById("vote-grid");
+      grid.innerHTML = "";
+      polls.forEach(item => {
+        const hasVoted = currentUser && item.voters.includes(currentUser);
+        const card = document.createElement("div");
+        card.className = "bg-cream p-3.5 rounded-2xl border-2 border-gray-800 flex flex-col justify-between";
+        const voterTags = item.voters.map(v => {
+          const mem = MEMBERS.find(m => m.name === v);
+          return `<span class="inline-block ${mem?.color || 'bg-gray-200'} text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-800">${mem?.avatar || '✨'} ${v}</span>`;
+        }).join(" ");
+
+        card.innerHTML = `
+          <div>
+            <div class="relative h-32 w-full rounded-xl overflow-hidden border-2 border-gray-800 mb-2.5">
+              <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover">
+              <span class="absolute top-2 right-2 bg-white/90 backdrop-blur text-rose-500 font-extrabold text-xs px-2 py-0.5 rounded-full border border-gray-800">
+                ❤️ ${item.voters.length} 票
+              </span>
+            </div>
+            <h4 class="font-extrabold text-sm text-gray-900 mb-1">${item.title}</h4>
+            <p class="text-[11px] text-gray-500 mb-2 leading-relaxed">${item.desc}</p>
+          </div>
+          <div class="pt-2 border-t border-gray-200 flex flex-col gap-2">
+            <div class="flex flex-wrap gap-1 min-h-[22px] items-center">
+              ${item.voters.length > 0 ? voterTags : '<span class="text-[10px] text-gray-400">暂无人投票，快来当第一个！</span>'}
+            </div>
+            <button onclick="toggleVote('${item.id}')" class="cute-btn w-full py-1.5 rounded-xl font-extrabold text-xs flex items-center justify-center space-x-1 ${hasVoted ? 'bg-rose-100 text-rose-600 border-rose-500' : 'bg-white hover:bg-rose-50 text-gray-800'}">
+              <span>${hasVoted ? '❤️ 已为它投票 (点击取消)' : '🤍 我投一票'}</span>
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function toggleVote(pollId) {
+      if (!currentUser) {
+        alert("请先在顶部选择你是哪位小伙伴哦！");
+        openUserModal();
+        return;
+      }
+      polls = polls.map(p => {
+        if (p.id === pollId) {
+          const index = p.voters.indexOf(currentUser);
+          if (index > -1) p.voters.splice(index, 1);
+          else p.voters.push(currentUser);
+        }
+        return p;
+      });
+      localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
+      renderPolls();
+    }
+
+    function addCustomPoll() {
+      const title = document.getElementById("custom-poll-title").value.trim();
+      const imgInput = document.getElementById("custom-poll-img").value.trim();
+      if (!title) {
+        alert("请输入你想去的店名或景点名称！");
+        return;
+      }
+      polls.unshift({
+        id: "poll-" + Date.now(),
+        title: title,
+        desc: `由 ${currentUser || '小组成员'} 新增提议`,
+        img: imgInput || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
+        voters: currentUser ? [currentUser] : []
+      });
+      localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
+      document.getElementById("custom-poll-title").value = "";
+      document.getElementById("custom-poll-img").value = "";
+      renderPolls();
+    }
+
+    function renderItinerary() {
+      const container = document.getElementById("itinerary-days-container");
+      container.innerHTML = "";
+      itinerary.forEach((day, dayIndex) => {
+        const dayCard = document.createElement("div");
+        dayCard.className = "bg-white p-5 cute-card relative overflow-hidden";
+        dayCard.innerHTML = `
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <span class="text-xs font-bold text-gray-400 block">Day ${dayIndex + 1}</span>
+              <h3 class="text-lg font-black text-gray-900">${day.date}</h3>
+            </div>
+            <span class="${day.color} px-3 py-1 font-extrabold text-xs cute-btn rounded-xl">
+              ${day.badge}
+            </span>
+          </div>
+          <div class="space-y-3 sortable-list" id="items-${day.dayId}"></div>
+          <div class="mt-4 pt-3 border-t-2 border-dashed border-gray-200">
+            <button onclick="promptAddItem('${day.dayId}')" class="cute-btn bg-white hover:bg-amber-50 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold w-full sm:w-auto flex items-center justify-center space-x-1">
+              <span>➕ 为这天添加新行程</span>
+            </button>
+          </div>
+        `;
+        container.appendChild(dayCard);
+
+        const itemsContainer = dayCard.querySelector(`#items-${day.dayId}`);
+        day.items.forEach(item => {
+          const itemEl = document.createElement("div");
+          itemEl.className = "p-3 bg-gray-50 rounded-xl border border-gray-300 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between cursor-grab active:cursor-grabbing hover:bg-yellow-50/50 transition-colors";
+          itemEl.setAttribute("data-id", item.id);
+          itemEl.innerHTML = `
+            <div class="flex items-center space-x-3 w-full sm:w-auto flex-1">
+              <span class="text-gray-300 hover:text-gray-500 cursor-grab text-base select-none">⠿</span>
+              <img src="${item.img}" class="w-14 h-14 rounded-lg object-cover border border-gray-800 shrink-0">
+              <div class="flex-1">
+                <div class="flex items-center space-x-2">
+                  <span class="text-[11px] font-extrabold bg-gray-200 px-2 py-0.5 rounded text-gray-700">${item.time}</span>
+                  <h4 class="font-extrabold text-xs sm:text-sm text-gray-900">${item.title}</h4>
+                </div>
+                <p class="text-[11px] text-gray-500 mt-1 line-clamp-2">${item.desc}</p>
+              </div>
+            </div>
+            <button onclick="deleteItem('${day.dayId}', '${item.id}')" class="text-gray-400 hover:text-rose-500 p-1 text-xs self-end sm:self-center" title="删除这项">✕</button>
+          `;
+          itemsContainer.appendChild(itemEl);
+        });
+
+        new Sortable(itemsContainer, {
+          animation: 180,
+          ghostClass: 'drag-ghost',
+          handle: '.cursor-grab',
+          onEnd: function () {
+            const newIds = Array.from(itemsContainer.children).map(child => child.getAttribute("data-id"));
+            day.items.sort((a, b) => newIds.indexOf(a.id) - newIds.indexOf(b.id));
+            localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
+          }
+        });
+      });
+    }
+
+    function promptAddItem(dayId) {
+      const time = prompt("请输入时间段 (例如 14:00 - 16:00):", "15:00 - 17:00");
+      if (!time) return;
+      const title = prompt("请输入行程/地点名称:", "阿嬷手作喝下午茶");
+      if (!title) return;
+      const desc = prompt("请输入行程简介:", "打卡特色奶茶点心，合影拍照。") || "";
+      const day = itinerary.find(d => d.dayId === dayId);
+      if (day) {
+        day.items.push({
+          id: "custom-" + Date.now(),
+          time: time,
+          title: title,
+          desc: desc,
+          img: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=500&q=80"
+        });
+        localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
+        renderItinerary();
+      }
+    }
+
+    function deleteItem(dayId, itemId) {
+      if (!confirm("确定要移除这个行程项吗？")) return;
+      const day = itinerary.find(d => d.dayId === dayId);
+      if (day) {
+        day.items = day.items.filter(i => i.id !== itemId);
+        localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
+        renderItinerary();
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initUserModal();
+      renderPolls();
+      renderItinerary();
+    });
+  </script>
+</body>
+</html>
