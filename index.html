@@ -3,10 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>✨ 深圳6人吃喝玩乐小分队 🐾</title>
+  <title>✨ 深圳6人吃喝玩乐小分队 🐾 (实时云同步版)</title>
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- SortableJS 拖拽库 -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+  <!-- Firebase 10.12.0 Compat SDK (全员实时云同步核心) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -55,9 +64,24 @@
       background: #FFFBEB !important;
       border: 2px dashed #F59E0B !important;
     }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .live-pulse {
+      animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
   </style>
 </head>
 <body class="text-gray-800 font-sans pb-24">
+
+  <!-- 浮动实时提醒 Toast -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 pointer-events-none opacity-0 translate-y-[-10px]">
+    <div class="bg-gray-900/90 text-white px-4 py-2 rounded-full text-xs font-bold shadow-xl border border-gray-700 flex items-center space-x-2 backdrop-blur">
+      <span id="toast-icon">⚡</span>
+      <span id="toast-msg">已同步到云端</span>
+    </div>
+  </div>
 
   <!-- 身份选择浮层弹窗 -->
   <div id="user-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -67,22 +91,31 @@
         🐼
       </div>
       <h3 class="text-2xl font-extrabold font-cartoon text-gray-900 mb-1">请选择你的身份</h3>
-      <p class="text-xs text-gray-500 mb-6">选定后投票会记录你的名字，朋友们都能看见哦！</p>
+      <p class="text-xs text-gray-500 mb-6">选定后你的投票与行程调整都会带上你的名字，全员手机实时秒更新！</p>
       <div class="grid grid-cols-2 gap-3" id="user-select-list"></div>
     </div>
   </div>
 
   <!-- 顶部状态栏 -->
-  <div class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b-2 border-gray-800 px-4 py-2.5 shadow-sm">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
+  <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b-2 border-gray-800 px-4 py-2.5 shadow-sm">
+    <div class="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-2">
+      <!-- 操作者 -->
       <div class="flex items-center space-x-2">
         <span class="text-lg">👋</span>
-        <span class="text-xs font-bold text-gray-500">当前操作者:</span>
-        <span id="current-user-tag" class="bg-sunny font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm">未选择</span>
+        <span class="text-xs font-bold text-gray-500 hidden sm:inline">当前操作者:</span>
+        <span id="current-user-tag" class="bg-sunny font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm cursor-pointer" onclick="openUserModal()">
+          未选择 (点击选择)
+        </span>
+        <button onclick="openUserModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline">
+          切换
+        </button>
       </div>
-      <button onclick="openUserModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline">
-        切换好友
-      </button>
+
+      <!-- 实时同步指示器 -->
+      <div id="sync-status-pill" class="flex items-center space-x-1.5 text-[11px] font-extrabold bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse"></span>
+        <span id="sync-status-text">🟢 6人实时云同步已就绪</span>
+      </div>
     </div>
   </div>
 
@@ -95,7 +128,7 @@
       🧋 深圳好吃好逛 6人度假指南 🐼
     </h1>
     <p class="text-gray-600 text-xs md:text-sm font-medium">
-      两对情侣 + 两位帅哥美女！拖拽调整行程、投票选餐厅、随心加愿望！
+      两对情侣 + 两位帅哥美女！拖拽调整行程、投票选餐厅、随心加愿望，全员手机屏幕实时秒同步！
     </p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-left">
@@ -134,16 +167,16 @@
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div>
           <h2 class="text-2xl font-bold font-cartoon text-gray-900">🗳️ 6人专属心愿投票箱</h2>
-          <p class="text-xs text-gray-500">点击心心为想去的打卡点投票，随时可取消，票数包含队员签名！</p>
+          <p class="text-xs text-gray-500">点击心心为想去的打卡点投票，票数和签名全员实时可见！</p>
         </div>
         <span class="bg-bubblegum text-gray-900 text-xs px-3 py-1 rounded-full font-bold cute-btn">
-          实名投票
+          实时云端投票
         </span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="vote-grid"></div>
 
       <div class="mt-6 pt-5 border-t-2 border-dashed border-gray-200">
-        <h4 class="text-xs font-bold text-gray-700 mb-2">➕ 还想去哪？输入新选项让大家投票：</h4>
+        <h4 class="text-xs font-bold text-gray-700 mb-2">➕ 还想去哪？输入新选项让大家投票（全员实时可见）：</h4>
         <div class="flex flex-col sm:flex-row gap-2">
           <input type="text" id="custom-poll-title" placeholder="例如：鲍师傅糕点、顺德啫啫煲、大梅沙海滨栈道..." class="flex-1 px-3 py-2 border-2 border-gray-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-sunny">
           <input type="text" id="custom-poll-img" placeholder="图片链接 (可选，留空使用默认图)" class="w-full sm:w-44 px-3 py-2 border-2 border-gray-800 rounded-xl text-xs focus:outline-none">
@@ -158,7 +191,7 @@
     <section>
       <div class="text-center mb-6">
         <h2 class="text-3xl font-extrabold font-cartoon text-gray-900">🗓️ 每日行程（支持长按/鼠标拖拽调整先后）</h2>
-        <p class="text-xs text-gray-500">遇到突发情况或者想调换上午下午？直接拖动卡片即可更换顺序！</p>
+        <p class="text-xs text-gray-500">遇到突发情况或者想调换上午下午？直接拖动卡片即可更换顺序，大家手机上会同步换位！</p>
       </div>
       <div class="space-y-6" id="itinerary-days-container"></div>
     </section>
@@ -169,6 +202,7 @@
   </footer>
 
   <script>
+    // 6 位好友配置
     const MEMBERS = [
       { name: "WaiKit", avatar: "👦", color: "bg-sunny" },
       { name: "JingYi", avatar: "👧", color: "bg-bubblegum" },
@@ -403,7 +437,147 @@
 
     let polls = JSON.parse(localStorage.getItem("sz_trip_polls_v2")) || DEFAULT_POLLS;
     let itinerary = JSON.parse(localStorage.getItem("sz_trip_itinerary_v2")) || DEFAULT_ITINERARY;
+    let isUserDragging = false; // 拖拽中防止云端监听重绘冲突
 
+    // ==========================================
+    // 🚀 Firebase Cloud Firestore 实时同步集成
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAyOu7whHTKVyNaIiEFRdSd9Q5R0OIuaEo",
+      authDomain: "shenzhen-trip.firebaseapp.com",
+      projectId: "shenzhen-trip",
+      storageBucket: "shenzhen-trip.firebasestorage.app",
+      messagingSenderId: "379403403872",
+      appId: "1:379403403872:web:8bcb800e24dbf11ab9b905"
+    };
+
+    let db = null;
+    let tripDocRef = null;
+
+    function initFirebase() {
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        tripDocRef = db.collection("trips").doc("shenzhen_2026");
+
+        updateSyncStatus("connecting");
+
+        // 监听云端实时数据流 (实时广播到所有6位好友手机/电脑)
+        tripDocRef.onSnapshot((docSnapshot) => {
+          if (docSnapshot.exists) {
+            const cloudData = docSnapshot.data();
+            if (cloudData.polls && Array.isArray(cloudData.polls)) {
+              polls = cloudData.polls;
+              localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
+              renderPolls();
+            }
+            if (cloudData.itinerary && Array.isArray(cloudData.itinerary)) {
+              itinerary = cloudData.itinerary;
+              localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
+              // 仅当用户当前未在用手指拖拽时更新 DOM，保证丝滑
+              if (!isUserDragging) {
+                renderItinerary();
+              }
+            }
+
+            if (cloudData.lastModifiedBy && cloudData.lastModifiedBy !== currentUser) {
+              showToast(`🔔 ${cloudData.lastModifiedBy} 刚才更新了内容！`);
+            }
+            updateSyncStatus("synced");
+          } else {
+            // 云端首次无数据，写入初始行程与投票箱
+            tripDocRef.set({
+              polls: DEFAULT_POLLS,
+              itinerary: DEFAULT_ITINERARY,
+              lastModifiedBy: "系统初始化",
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              updateSyncStatus("synced");
+            }).catch(handleFirebaseError);
+          }
+        }, (error) => {
+          handleFirebaseError(error);
+        });
+
+      } catch (e) {
+        console.error("Firebase init failed:", e);
+        handleFirebaseError(e);
+      }
+    }
+
+    function handleFirebaseError(err) {
+      console.warn("Firestore sync warning:", err);
+      if (err.code === "permission-denied") {
+        updateSyncStatus("permission_error");
+      } else {
+        updateSyncStatus("error");
+      }
+    }
+
+    // 将改动推送到云端 Firestore
+    function pushToCloud(dataToUpdate, successMessage) {
+      if (!tripDocRef) {
+        return;
+      }
+      updateSyncStatus("saving");
+      dataToUpdate.lastModifiedBy = currentUser || "小组成员";
+      dataToUpdate.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+      tripDocRef.set(dataToUpdate, { merge: true })
+        .then(() => {
+          updateSyncStatus("synced");
+          if (successMessage) showToast(successMessage);
+        })
+        .catch((err) => {
+          console.error("Save to Firestore error:", err);
+          handleFirebaseError(err);
+        });
+    }
+
+    function updateSyncStatus(status) {
+      const pill = document.getElementById("sync-status-pill");
+      const text = document.getElementById("sync-status-text");
+      if (!pill || !text) return;
+
+      if (status === "connecting") {
+        pill.className = "flex items-center space-x-1.5 text-[11px] font-extrabold bg-amber-50 text-amber-800 px-3 py-1 rounded-full border border-amber-300 shadow-sm";
+        text.innerHTML = "🟡 正在连接 6 人云端...";
+      } else if (status === "saving") {
+        pill.className = "flex items-center space-x-1.5 text-[11px] font-extrabold bg-blue-50 text-blue-800 px-3 py-1 rounded-full border border-blue-300 shadow-sm";
+        text.innerHTML = "🔄 正在同步全员手机...";
+      } else if (status === "synced") {
+        pill.className = "flex items-center space-x-1.5 text-[11px] font-extrabold bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300 shadow-sm";
+        text.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 live-pulse mr-1"></span> 🟢 6人实时云同步已就绪';
+      } else if (status === "permission_error") {
+        pill.className = "flex items-center space-x-1.5 text-[11px] font-extrabold bg-rose-50 text-rose-800 px-3 py-1 rounded-full border border-rose-300 shadow-sm cursor-pointer";
+        text.innerHTML = "⚠️ 请开启 Firestore 读写规则 (点击查看)";
+        pill.onclick = () => {
+          alert("提示：请在 Firebase 控制台 -> Firestore Database -> Rules (规则) 中设置为允许公开读写：\n\nallow read, write: if true;\n\n发布后即可全员实时互通！");
+        };
+      } else {
+        pill.className = "flex items-center space-x-1.5 text-[11px] font-extrabold bg-gray-100 text-gray-700 px-3 py-1 rounded-full border border-gray-300 shadow-sm";
+        text.innerHTML = "⚪ 离线模式 (缓存保存)";
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      const toastMsg = document.getElementById("toast-msg");
+      if (!toast || !toastMsg) return;
+      toastMsg.innerText = msg;
+      toast.classList.remove("opacity-0", "translate-y-[-10px]");
+      toast.classList.add("opacity-100", "translate-y-0");
+      setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-[-10px]");
+      }, 2200);
+    }
+
+    // ==========================================
+    // 👤 用户身份模块
+    // ==========================================
     function initUserModal() {
       const list = document.getElementById("user-select-list");
       list.innerHTML = "";
@@ -442,6 +616,7 @@
       document.getElementById("user-modal").classList.add("hidden");
       updateUserUI();
       renderPolls();
+      showToast(`已切换身份为: ${name}`);
     }
 
     function updateUserUI() {
@@ -449,15 +624,19 @@
       if (currentUser) {
         const mem = MEMBERS.find(m => m.name === currentUser);
         tag.innerHTML = `${mem?.avatar || '🌟'} ${currentUser}`;
-        tag.className = `font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm ${mem?.color || 'bg-sunny'}`;
+        tag.className = `font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm cursor-pointer ${mem?.color || 'bg-sunny'}`;
       } else {
         tag.innerText = "未选择 (点击选择)";
-        tag.className = "bg-gray-100 font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm text-gray-600";
+        tag.className = "bg-gray-100 font-extrabold px-3 py-1 rounded-full text-xs border border-gray-800 shadow-sm text-gray-600 cursor-pointer";
       }
     }
 
+    // ==========================================
+    // 🗳️ 投票模块 (实时云同步)
+    // ==========================================
     function renderPolls() {
       const grid = document.getElementById("vote-grid");
+      if (!grid) return;
       grid.innerHTML = "";
       polls.forEach(item => {
         const hasVoted = currentUser && item.voters.includes(currentUser);
@@ -506,8 +685,11 @@
         }
         return p;
       });
+      // 1. 本地更新
       localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
       renderPolls();
+      // 2. 实时推送到 Firebase 云端
+      pushToCloud({ polls: polls }, `已同步你的投票！`);
     }
 
     function addCustomPoll() {
@@ -520,18 +702,25 @@
       polls.unshift({
         id: "poll-" + Date.now(),
         title: title,
-        desc: `由 ${currentUser || '小组成员'} 新增提议`,
+        desc: `由 ${currentUser || '小分队成员'} 新增提议`,
         img: imgInput || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
         voters: currentUser ? [currentUser] : []
       });
-      localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
       document.getElementById("custom-poll-title").value = "";
       document.getElementById("custom-poll-img").value = "";
+      // 1. 本地更新
+      localStorage.setItem("sz_trip_polls_v2", JSON.stringify(polls));
       renderPolls();
+      // 2. 实时推送到 Firebase 云端
+      pushToCloud({ polls: polls }, `✨ 新选项已全员同步！`);
     }
 
+    // ==========================================
+    // 🗓️ 日程拖拽与增删模块 (实时云同步)
+    // ==========================================
     function renderItinerary() {
       const container = document.getElementById("itinerary-days-container");
+      if (!container) return;
       container.innerHTML = "";
       itinerary.forEach((day, dayIndex) => {
         const dayCard = document.createElement("div");
@@ -581,10 +770,17 @@
           animation: 180,
           ghostClass: 'drag-ghost',
           handle: '.cursor-grab',
+          onStart: function() {
+            isUserDragging = true;
+          },
           onEnd: function () {
+            isUserDragging = false;
             const newIds = Array.from(itemsContainer.children).map(child => child.getAttribute("data-id"));
             day.items.sort((a, b) => newIds.indexOf(a.id) - newIds.indexOf(b.id));
+            // 1. 本地更新
             localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
+            // 2. 实时推送到 Firebase 云端 (全员屏幕同步调换顺序)
+            pushToCloud({ itinerary: itinerary }, `已同步行程顺序！`);
           }
         });
       });
@@ -607,6 +803,7 @@
         });
         localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
         renderItinerary();
+        pushToCloud({ itinerary: itinerary }, `➕ 已为 Day ${dayId} 添加新行程并同步！`);
       }
     }
 
@@ -617,13 +814,16 @@
         day.items = day.items.filter(i => i.id !== itemId);
         localStorage.setItem("sz_trip_itinerary_v2", JSON.stringify(itinerary));
         renderItinerary();
+        pushToCloud({ itinerary: itinerary }, `已移除该行程并全员同步`);
       }
     }
 
+    // 初始化运行
     window.addEventListener("DOMContentLoaded", () => {
       initUserModal();
       renderPolls();
       renderItinerary();
+      initFirebase();
     });
   </script>
 </body>
